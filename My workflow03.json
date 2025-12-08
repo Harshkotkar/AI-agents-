@@ -1,0 +1,493 @@
+{
+  "name": "My workflow03",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=your work is to create the blog content form the  {{ $json.chatInput }} this website and from the keyword you will be provided ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -704,
+        16
+      ],
+      "id": "eef3b944-46b2-496e-b308-17730579137d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        208
+      ],
+      "id": "5cb12b97-b311-4ede-85c2-9fa6a70df760",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "F31CGswTPjvqcQGQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "url",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "url"
+            },
+            {
+              "fieldLabel": "keyword"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -336,
+        32
+      ],
+      "id": "aa004fea-538f-4f7b-8ce9-3378c36b7126",
+      "name": "On form submission",
+      "webhookId": "83ef4c9b-310b-4e09-82de-be49908da9e9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3d7e73ae-cbde-4295-a22c-952cd3269448",
+              "name": "",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "196fa529-e995-4eb2-9b7d-17a4691a48cd",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "e3195cb6-39e3-42a1-990f-b9aa97a3e7f8",
+              "name": "keyword",
+              "value": "={{ $json.keyword }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        32
+      ],
+      "id": "cbe8af18-9042-4877-8767-4d1b4937ca6d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=your work is to create the blog content form the this {{ $json.url }} and this is keyword {{ $json.keyword }} website and from the keyword you will be provided "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        32
+      ],
+      "id": "84a46a1c-5bb8-41f2-ae57-33a10179e4db",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "F31CGswTPjvqcQGQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Content Creation Request",
+        "formDescription": "Enter a website URL and keywords to generate trending topic content",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Website URL",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Keywords (comma-separated)",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "47e0c3a0-73ae-45cf-83cd-cd6e1a9ccb13",
+      "name": "Content Creation Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -544,
+        560
+      ],
+      "webhookId": "108a6a2f-613f-497d-9198-05878d38afef",
+      "retryOnFail": false,
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "websiteUrl",
+              "value": "={{ $json.websiteUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "keywords",
+              "value": "={{ $json.keywords }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1c564ac6-ebb1-4d36-871d-f3bff8171a0d",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet response;\n\nif (input.content && input.content.parts && input.content.parts[0] && input.content.parts[0].text) {\n  response = input.content.parts[0].text;\n} else if (input.message) {\n  response = input.message;\n} else if (typeof input === 'string') {\n  response = input;\n} else {\n  response = JSON.stringify(input);\n}\n\nlet topics;\n\ntry {\n  const jsonMatch = response.match(/\\[.*\\]/s);\n  if (jsonMatch) {\n    topics = JSON.parse(jsonMatch[0]);\n  } else {\n    topics = response.split('\\n').filter(t => t.trim() && !t.includes('```')).slice(0, 5);\n  }\n} catch (e) {\n  topics = response.split('\\n').filter(t => t.trim() && !t.includes('```')).slice(0, 5);\n}\n\nreturn topics.slice(0, 5).map((topic, index) => ({\n  json: {\n    topic: typeof topic === 'string' ? topic.replace(/^[0-9]+\\.\\s*/, '').replace(/^-\\s*/, '') : topic.toString(),\n    topicNumber: index + 1\n  }\n}));"
+      },
+      "id": "31e5ee3d-b026-48a7-bdcb-d9e7f88d7523",
+      "name": "Parse Topics to Array",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "943ca063-bbeb-4f26-ae99-97c12595e13a",
+      "name": "Loop Over Topics",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "allContent",
+              "value": "={{ $input.all().map(item => { const message = item.json.content?.parts?.[0]?.text || item.json.message || ''; return `Topic ${item.json.topicNumber}: ${item.json.topic}\\n\\n${message}`; }).join('\\n\\n---\\n\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b9fce69c-f104-4fec-a25d-d365f59debcb",
+      "name": "Aggregate All Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/content_{{ new Date().getTime() }}.txt",
+        "options": {
+          "append": false
+        }
+      },
+      "id": "89244f9e-08f5-4d60-bee8-2989f5f95c5a",
+      "name": "Save to Text File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemma-3-1b-it",
+          "mode": "list",
+          "cachedResultName": "models/gemma-3-1b-it"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a comprehensive paragraph (150-200 words) about the following topic: {{ $json.topic }}. Make it informative, engaging, and well-structured."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0357124c-ec16-4259-8900-9f87c85708da",
+      "name": "Write Content with Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        704,
+        608
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gcjS0KloOMxAtNi3",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Clean up, structure, and enhance the following content. Improve grammar, flow, and readability. Add proper formatting with headings and ensure consistency throughout. Return ONLY the enhanced content:\n\n{{ $json.allContent }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "19b0c69d-1786-4bf0-89b5-4c766853f9a4",
+      "name": "Clean Up Content with Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        800,
+        272
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "F31CGswTPjvqcQGQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=consider yu as an a professional digital content writer. \nyour work is to create the blog content form  this website provided  {{ $json['Website URL'] }} and this are the keywords  {{ $json['Keywords (comma-separated)'] }}   be content specific.  "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        560
+      ],
+      "id": "157df9af-10d2-4c20-b04b-2c47eb690051",
+      "name": "Message a model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "F31CGswTPjvqcQGQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Creation Form": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Topics to Array": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Topics": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Content with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Content": {
+      "main": [
+        [
+          {
+            "node": "Clean Up Content with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Content with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Up Content with Gemini": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Parse Topics to Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "63310046-14ba-4d51-98b1-b66186becd79",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "180e4592f15afbd698c2382d72c4c9eba1ca487987afd4fe53052e3cd7f9fafa"
+  },
+  "id": "1GwyAlA5W7vi6dVA",
+  "tags": []
+}
